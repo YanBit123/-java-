@@ -157,6 +157,7 @@ public class Calculator {
                             field.setText("");
                             break;
                         case "DEL":
+                            if(fieldText.length() > 0)
                             field.setText(fieldText.substring(0, fieldText.length() - 1));
                             break;
                         case "=":
