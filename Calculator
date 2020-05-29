@@ -1,0 +1,339 @@
+package CC;
+
+import javax.imageio.ImageIO;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.List;
+
+/**
+ * @program: Test
+ * @description: 计算器
+ * @author: YX
+ * @create: 2020-05-27 17:07
+ **/
+public class Calculator {
+    //输入文本框
+    private JTextField field;
+    //计算结果
+    private double answer;
+    //窗口ico
+    private static Image ico;
+    //权重值表
+    private static HashMap<Character, Integer> weightMap;
+    //大号字体
+    private static Font bigFont;
+    //中号字体
+    private static Font middleFont;
+    //小号字体
+    private static Font smallFont;
+
+    public static void main(String[] args) {
+        //创建计算器类对象
+        Calculator calculator = Calculator.getInstance();
+        //创建窗口
+        JFrame frame = calculator.createFrame();
+        //创建内容面板
+        JPanel panel = calculator.createContentPanel();
+        //设置内容面板到窗口
+        frame.setContentPane(panel);
+        //窗口可视
+        frame.setVisible(true);
+    }
+
+    //封装创建内容面板
+    private JPanel createContentPanel() {
+        //初始化内容面板
+        JPanel content = initContentPanel();
+        //创建输入框面板
+        JPanel inputPanel = createInputPanel();
+        //创建按钮面板
+        JPanel buttonPanel = createButtonPanel();
+        //将按钮面板加入内容面板
+        content.add(buttonPanel, BorderLayout.CENTER);
+        //将输入框面板加入内容面板
+        content.add(inputPanel, BorderLayout.NORTH);
+        return content;
+    }
+
+    //封装创建按钮面板
+    private JPanel createButtonPanel() {
+        JPanel panel = new JPanel();
+        //设置背景色
+        panel.setBackground(null);
+        //设置网格布局
+        GridLayout layout = new GridLayout(5, 4);
+        //设置间距
+        layout.setVgap(2);
+        layout.setHgap(2);
+        panel.setLayout(layout);
+        //创建按钮集合
+        List<JButton> buttons = createButtons();
+        //将按钮添加到面板
+        for (int i = 0; i < buttons.size(); i++) {
+            panel.add(buttons.get(i));
+        }
+        return panel;
+    }
+
+    //封装创建按钮集合
+    private List<JButton> createButtons() {
+        List<JButton> buttons = new ArrayList<>();
+        buttons.add(new JButton("1"));
+        buttons.add(new JButton("2"));
+        buttons.add(new JButton("3"));
+        buttons.add(new JButton("+"));
+        buttons.add(new JButton("4"));
+        buttons.add(new JButton("5"));
+        buttons.add(new JButton("6"));
+        buttons.add(new JButton("-"));
+        buttons.add(new JButton("7"));
+        buttons.add(new JButton("8"));
+        buttons.add(new JButton("9"));
+        buttons.add(new JButton("*"));
+        buttons.add(new JButton("%"));
+        buttons.add(new JButton("0"));
+        buttons.add(new JButton("."));
+        buttons.add(new JButton("/"));
+        buttons.add(new JButton("^"));
+        buttons.add(new JButton("CLS"));
+        buttons.add(new JButton("DEL"));
+        buttons.add(new JButton("="));
+
+        //创建监听器
+        ActionListener listener = createListener();
+
+        for (int i = 0; i < buttons.size(); i++) {
+            JButton button = buttons.get(i);
+            //设置输入框文字样式
+            Font font = new Font("黑体", Font.BOLD, 30);
+            button.setFont(font);
+            //设置边框
+            button.setBorder(null);
+            //设置背景
+            button.setBackground(new Color(0xFBFBFB));
+            //添加监听器
+            button.addActionListener(listener);
+        }
+        return buttons;
+    }
+
+    //封装创建监听器
+    private ActionListener createListener() {
+        return new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (e.getSource() instanceof JButton) {
+                    JButton button = (JButton) e.getSource();
+                    //获取按钮文字
+                    String buttonText = button.getText();
+                    //获取输入框文字
+                    String fieldText = field.getText();
+
+                    //若本次运算已经结束
+                    if (fieldText.matches("(.*)(=|Error)(.*)")) {
+                        if (buttonText.matches("\\d")) {
+                            //输入数字，重新开始计算
+                            field.setText("");
+                        } else {
+                            //输入非数字，将上次运算结果作为第一位计算数字
+                            field.setText("" + answer);
+                        }
+                    }
+
+                    //重新获取输入框文字
+                    fieldText = field.getText();
+
+                    //判断按钮类型
+                    switch (buttonText) {
+                        case "CLS":
+                            field.setText("");
+                            break;
+                        case "DEL":
+                            field.setText(fieldText.substring(0, fieldText.length() - 1));
+                            break;
+                        case "=":
+                            //输出结果
+                            printAns();
+                            break;
+                        default:
+                            field.setText(fieldText + buttonText);
+                            break;
+                    }
+
+                    //当输入框内容过多时缩小字体,内容适中时恢复大小
+                    if(field.getText().length()>30){
+                        field.setFont(smallFont);
+                    }else if(field.getText().length()>15){
+                        field.setFont(middleFont);
+                    }else{
+                        field.setFont(bigFont);
+                    }
+                }
+            }
+
+            //封装打印结果
+            private void printAns() {
+                //获取文本框内容
+                String fieldText = field.getText();
+                System.out.println(fieldText.matches("^[\\d]"));
+                if (fieldText.matches("^[^\\d].*")) {
+                    field.setText("Error(Illegal expression)");
+                    return;
+                }
+                //获取计算数字
+                String[] numsStr = fieldText.split("[^\\d,\\.]");
+                //转化计算数字
+                double[] nums = new double[numsStr.length];
+                for (int i = 0; i < numsStr.length; i++) {
+                    nums[i] = Double.parseDouble(numsStr[i]);
+                }
+                //获取操作符
+                //截取所有的非数字
+                char[] operators = fieldText.replaceAll("[\\d.,\\.]", "").toCharArray();
+//                System.out.println(Arrays.toString(nums));
+//                System.out.println(Arrays.toString(operators));
+                //计算结果
+                answer = getAns(nums, operators);
+                //打印结果
+                field.setText(fieldText + "=" + new DecimalFormat("#.#######################").format(answer));
+            }
+        };
+    }
+
+    //封装结果计算
+    private double getAns(double[] nums, char[] operators) {
+        double answer = nums[0];
+        for (int i = 1; i < nums.length; i++) {
+            //如果当前运算右侧存在运算，则进行权重比较
+            if (i < operators.length) {
+                //比较计算权重,小于右侧计算的权重时,则先进行右侧运算
+                if (weightMap.get(operators[i - 1]) < weightMap.get(operators[i])) {
+                    //计算右侧，结果存储到下一位上
+                    nums[i + 1] = calculate(nums[i], nums[i + 1], operators[i]);
+                    //将当前运算符右移一位
+                    operators[i] = operators[i - 1];
+                    continue;
+                }
+            }
+            answer = calculate(answer, nums[i], operators[i - 1]);
+        }
+        return answer;
+    }
+
+    //封装两数间的计算
+    private double calculate(double num1, double num2, char oprator) {
+        switch (oprator) {
+            case '+':
+                return num1 + num2;
+            case '-':
+                return num1 - num2;
+            case '*':
+                return num1 * num2;
+            case '/':
+                return num1 / num2;
+            case '^':
+                return Math.pow(num1, num2);
+        }
+        return -1;
+    }
+
+    //封装创建输入面板
+    private JPanel createInputPanel() {
+        JPanel panel = new JPanel();
+        //设置输入框背景色
+        panel.setBackground(null);
+        //设置布局模式:边界布局
+        panel.setLayout(new BorderLayout());
+        //设置初始大小
+        panel.setPreferredSize(new Dimension(500, 120));
+        //创建输入框
+        field = new JTextField();
+        //设置输入框文字样式
+        field.setFont(bigFont);
+        //设置输入框不可获得焦点
+//        field.setFocusable(false);
+        //输入框不可编辑
+//        field.setEditable(false);
+        //去除输入框边框
+        field.setBorder(null);
+        //设置输入框背景色
+        field.setBackground(null);
+
+        //将输入框加入面板
+        panel.add(field);
+        return panel;
+    }
+
+    //封装初始化内容面板
+    private JPanel initContentPanel() {
+        JPanel panel = new JPanel();
+        //设置边界布局
+        BorderLayout layout = new BorderLayout();
+        //设置垂直间距
+//        layout.setVgap(30);
+        panel.setLayout(layout);
+        //设置背景色
+        panel.setBackground(new Color(0xE9EBF0));
+        return panel;
+    }
+
+    //私有化构造器
+    private Calculator() {
+
+    }
+
+    private static Calculator calc = new Calculator();
+
+    //提供外部访问方法
+    public static Calculator getInstance() {
+        return calc;
+    }
+
+    //封装创建窗口
+    public JFrame createFrame() {
+        //定义窗口
+        JFrame frame = new JFrame("Calculator");
+        //设置窗口大小
+        frame.setSize(500, 800);
+        //设置窗口居中
+        frame.setLocationRelativeTo(null);
+        //设置窗口关闭时程序结束
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        //窗口大小不可变
+        frame.setResizable(false);
+        //设置窗口ico
+        frame.setIconImage(ico);
+        return frame;
+    }
+
+    static {
+        //初始化ico数据
+        //将Base64数据解码为字符数组
+        byte[] icoBytes = Base64.getDecoder().decode("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");
+        try {
+            //读取ico数据
+            ico = ImageIO.read(new ByteArrayInputStream(icoBytes));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        //初始化权重值表
+        weightMap = new HashMap();
+        weightMap.put('+', 1);
+        weightMap.put('-', 1);
+        weightMap.put('*', 2);
+        weightMap.put('/', 2);
+        weightMap.put('^', 3);
+        //初始化字体
+        bigFont = new Font("Arial", Font.PLAIN, 50);
+        middleFont = new Font("Arial", Font.PLAIN, 30);
+        smallFont = new Font("Arial", Font.PLAIN, 15);
+    }
+}
